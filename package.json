@@ -1,0 +1,16 @@
+{
+  "name": "chaiandproject",
+  "version": "1.0.0",
+  "description": "deep Project to understand Backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Node",
+    "express",
+    "mongoDb"
+  ],
+  "author": "Durgesh Kumar Singh",
+  "license": "MIT"
+}
