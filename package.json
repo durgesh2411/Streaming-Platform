@@ -2,8 +2,10 @@
   "name": "chaiandproject",
   "version": "1.0.0",
   "description": "deep Project to understand Backend",
+  "type": "module",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -12,5 +14,8 @@
     "mongoDb"
   ],
   "author": "Durgesh Kumar Singh",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
 }
