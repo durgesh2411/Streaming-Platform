@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { dbName } from "./constants.js";
 import connectDB from "./db/index.js";
+import { app } from "./app.js"; // Import the app from app.js
 
 // Connect to MongoDB with modularity:
 
