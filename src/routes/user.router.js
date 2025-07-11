@@ -1,6 +1,15 @@
 import { Router } from "express";
+import { upload } from "../middlewares/multer.middleware.js";
 import { registerUser } from "../controllers/user.controller.js";
 const router = Router();
-// this /register will get added to the /user in the url.
-router.route("/register").post(registerUser);
+
+// Registration with mandatory file uploads
+router.route("/register").post(
+  upload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "coverImages", maxCount: 5 },
+  ]),
+  registerUser,
+);
+
 export default router;

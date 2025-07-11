@@ -1,7 +1,6 @@
 import mongoose , {Schema} from 'mongoose';
-import {jwt} from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { use } from 'react';
 
 const userSchema = new Schema({
    username: {
@@ -33,7 +32,12 @@ const userSchema = new Schema({
    avatar: {
       type: String,   //cloudinary URL or local path
       default: 'https://res.cloudinary.com/durgesh2411/image/upload/v1681234567/default-avatar.png',
-      required: true // default avatar URL
+      required: true // avatar is required
+   },
+   coverImages: {
+      type: [String],
+      default:
+         'https://res.cloudinary.com/durgesh2411/image/upload/v1681234567/default-cover.png',
    },
    watchHistory: [{
       type: Schema.Types.ObjectId,
