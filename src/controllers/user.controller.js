@@ -1,8 +1,9 @@
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { User } from "../models/user.model.js";
+import { User } from "../models/user.model.js";    // user import from Model
 import { uploadOnClouddinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { use } from "react";
 
 const registerUser = asyncHandler(async (req, res) => {
 //   console.log("Request body:", req.body);
@@ -105,4 +106,108 @@ const registerUser = asyncHandler(async (req, res) => {
   return res.status(201).json(new ApiResponse(201, createdUser, message));
 });
 
-export { registerUser };
+const createAccessAndRefreshTokens = async(userId) =>{   // fetch userId from user body as we have access to user object
+   try {
+      const user = await User.findById(userId);  // finding user by id
+      const accessToken = user.generateAccessToken();  // generate access token using user model method and give it user
+      // generate refresh token using user model method and keep in db regenerate access token
+      const refreshToken = user.generateRefreshToken();
+      //put token in table of refresh token in db
+      user.refreshToken = refreshToken;
+      // save user with new refresh token
+      // when we try to save, model gets kicked in and password gets checked and hashed
+      // add property password to user object
+      await user.save({validateBeforeSave: false}); // skip validation as password is not required here
+      // part done return both the tokens:
+      return { accessToken, refreshToken };
+
+   } catch (error) {
+      throw new ApiError(500, "Token generation failed");  // server issue so 500 status code
+   }
+}
+
+const loginUser = asyncHandler(async (req, res) =>{
+
+   //1. req body  --> data retrieval
+   const { email, username, password } = req.body;
+   //2. username or email based validation:
+   if (!email || !username) {
+      throw new ApiError(400, "Email and username both are required");
+   }
+   //3. find the user in db
+   const user = await User.findOne({
+      $or: [{email}, {username}]
+   })
+   if(!user){
+      throw new ApiError(404, "User not found");
+   }
+   //4. password validation
+   const isPasswordvalid = await user.isPasswordValid(password)
+
+   if(!isPasswordvalid){
+      throw new ApiError(401, "Invalid password");
+   }
+   //5. access and refresh token generation
+   const { accessToken, refreshToken } = await createAccessAndRefreshTokens(user._id);
+
+   //6. send this tokens in cookies
+         // what all info we need to send to user:
+         // now since the user instance we used before is empty, we need to fetch the user again
+   const userWithTokens = await User.findById(user._id).select(
+      "-password -refreshToken") // exclude password and refreshToken from the response
+
+      // now we send coocies(we need create options for cookies):
+      const cookiesOptions = {
+         httpOnly: true, // prevent client-side JS from accessing the cookies
+         secure : true, // use secure cookies in production (HTTPS) ony mod. by server
+      }
+
+      return res
+      .status(200)
+      .cookie("accessToken", accessToken, cookiesOptions)   // we can use .cookie by use of middleware(cookieParser)
+      .cookie("refreshToken", refreshToken, cookiesOptions)
+      .json(
+         new ApiResponse(200,      // 1.satus code
+            {
+               user: userWithTokens,
+               accessToken,   // for user to save additional info in local storage(2. data)
+               refreshToken
+            },
+            "User logged in successfully"  //3. message
+         )
+      )
+
+
+
+})
+
+const logOutUser = asyncHandler(async (req, res) =>{
+   // 1. delete the refresh token from the user document
+   // 2. clear the cookies
+   // once we applied auth middle ware now we have user as obj in req
+  await  User.findByIdAndUpdate(
+      req.user._id,
+      {
+         $set: {refreshToken: undefined}      // remove the refresh token from the user document
+      },
+      {
+         new: true                         // return the updated user document
+      }
+   )
+
+         const cookiesOptions = {
+         httpOnly: true, // prevent client-side JS from accessing the cookies
+         secure : true, // use secure cookies in production (HTTPS) ony mod. by server
+      }
+
+      res.status(200)
+      .clearCookie("accessToken", cookiesOptions) // clear the access token cookie
+      .clearCookie("refreshToken", cookiesOptions) // clear the refresh token cookie
+      .json(new ApiResponse(200, null, "User logged out successfully"));
+})
+
+export {
+   registerUser,
+   loginUser,
+   logOutUser
+ };
